@@ -33,3 +33,18 @@ node linux/bin/gt2-build.js <工程根> -o out.hap [--app out.app] [--build buil
   `vendor-wasm/`，`js/jerry-wasm.js` 探测加载；构建前可先跑 `local-snapshot-server.cjs` 兜底）。
 - 可整体发布到 **GitHub Pages**（纯静态、前端全相对路径）：把 `compiler/web` 内容放仓库根（或 `docs/`）+ `.nojekyll`。
   部署前需先按 `BUILD.md` §2 构建 wasm 放入 `web/vendor-wasm/`，之后浏览器内编译+补字节码全自足。
+
+## 致谢
+
+### 原编译器参考（HUAWEI / HarmonyOS SDK）
+
+本编译器是**参照华为 HUAWEI / HarmonyOS SDK API6（2.2.0）官方 lite JS 编译管线**的独立重实现：
+官方 DevEco `ace-loader`（webpack 管线 + `jerry-snapshot` v24 字节码 + png→bin 媒体转换）旧流程由原
+`scripts/build-lite-hap.sh`（SDK + wine）调用，已弃用。本仓库实现不依赖 SDK/wine，但以 SDK 真机构建
+产物作为 **oracle** 逐字节对齐验收（HML/CSS 逐字等价、png→bin 逐字节、HAP 逐文件）。官方 SDK 版权归
+华为/HUAWEI 所有，不在本仓库分发（`sdk/` 位于上级 `gt2-hap-sideload` 工程，仅作参考）。
+
+### 集成 / vendored 的开源项目
+
+本仓库集成了多个开源项目（JerryScript / Babel / JSZip / pako），版权归原作者所有，
+许可与版本信息见 **[THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)**。
