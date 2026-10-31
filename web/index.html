@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>GT2 lite HML 编译器 · Web 版</title>
+<link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+<header>
+  <h1>GT2 轻智能 HAP 编译器 <span class="sub">Web 版</span></h1>
+  <p class="tagline">拖入 DevEco 2.x lite 工程（或 zip）→ 编译 → 下载未签名 HAP（可直接拖进 hmlwsim）</p>
+</header>
+
+<main>
+  <section id="drop-zone" class="dropzone">
+    <div class="drop-inner">
+      <div class="big-ico">📦</div>
+      <p><strong>把工程文件夹拖到这里</strong><br/>也支持放下 zip 包</p>
+      <div class="or">或</div>
+      <div class="toolbar">
+        <button id="btn-folder" type="button">📁 选择工程文件夹</button>
+        <button id="btn-zip" type="button">🗜️ 选择工程 zip</button>
+      </div>
+      <input type="file" id="inp-folder" webkitdirectory directory multiple hidden />
+      <input type="file" id="inp-zip" accept=".zip,application/zip" hidden />
+    </div>
+  </section>
+
+  <section id="summary" class="card hidden">
+    <h2>编译结果</h2>
+    <div class="kv">
+      <div><span>应用</span><b id="s-bundle"></b></div>
+      <div><span>版本</span><b id="s-version"></b></div>
+      <div><span>页面</span><b id="s-pages"></b></div>
+      <div><span>HAP 文件数</span><b id="s-files"></b></div>
+      <div><span>JS 总量</span><b id="s-js"></b></div>
+      <div><span>字节码 .bc</span><b id="s-bc" class="warn"></b></div>
+    </div>
+    <div id="warnings" class="warns"></div>
+    <div class="bc-bar" id="bc-bar" hidden>
+      <label class="switch">
+        <input type="checkbox" id="bc-toggle" />
+        <span>真机字节码 .bc（JRRY v24）</span>
+      </label>
+      <span id="bc-provider" class="hint"></span>
+      <button id="btn-recompile" type="button" hidden>重新编译（含字节码）</button>
+    </div>
+    <div class="actions">
+      <button id="btn-download" type="button" class="primary">⬇️ 下载 HAP（未签名）</button>
+      <span class="hint">真机安装需要 .bc，见下方「真机字节码」。</span>
+    </div>
+  </section>
+
+  <section id="pipeline" class="card hidden">
+    <h2>编译日志</h2>
+    <pre id="log"></pre>
+  </section>
+
+  <footer>
+    核心单一来源 <code>compiler/linux/lib</code> · 页面/资源索引与 Linux 版逐字节对齐 ·
+    <a href="https://github.com/kqakqakqa" target="_blank" rel="noopener">动手项目</a>
+  </footer>
+</main>
+
+<script src="vendor/babel.min.js"></script>
+<script src="vendor/pako.min.js"></script>
+<script src="vendor/jszip.min.js"></script>
+<script src="js/compiler-core.js"></script>
+<script src="js/web-core.js"></script>
+<script src="js/jerry-wasm.js"></script>
+<script src="js/ui.js"></script>
+</body>
+</html>
