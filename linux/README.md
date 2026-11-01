@@ -3,7 +3,7 @@
 逆向华为 GT2 轻智能（liteWearable，SDK API6）JS/HML 编译链路的自有实现。
 对 `hmlitewearable_files` 工程（15 页 + app）产出与真 SDK 语义等价的未签名 HAP：
 
-- `.js` = webpack4 风格 bundle（页面: helpers 0/1 + entry/render/styles/script/deps；app: 数组带洞 `[,,entry,script,manifest]`）
+- `.js` = webpack4 风格 bundle（页面: helpers 0/1 + entry/render/styles/script/deps；app: 0/1 按需填 helper，无 helper 引用时数组带洞 `[,,entry,script,manifest]`）
 - `.bc` = JerryScript **v24** 字节码快照（`JRRY 0x18`，校验失败直接报错）
 - `common/*.bin` = PNG → BGRA 原始像素（8B 头 + `width|height<<16`）
 - `resources.index` / 规范化 `config.json` = 与官方包字节级一致
@@ -41,7 +41,7 @@ node bin/gt2-build.js <工程根> -o out.hap [--app out.app] [--build buildDir]
 ```
 node test-all-pages.cjs     15/15  render + styleSheet 与 SDK oracle 逐字等价
 node test-bundle-run.cjs    15/15  页面 bundle 在 VM 执行语义等价（data/方法/装配）
-node test-app-bundle.cjs    1/1    app bundle 数组带洞 + manifest 占位
+node test-app-bundle.cjs    3/3  app bundle：无 import 空洞保持 + 带 import helper 填充 + 仅箭头函数（VM 执行 + manifest 挂载）
 node test-e2e-hap.cjs       30/30  build/HAP 与参考构建逐文件对比
 node test-final-hap.cjs     17/17  产物 HAP 内全部 js 执行 + .bc 全 v24
 ```

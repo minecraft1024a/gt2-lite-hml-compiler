@@ -5,7 +5,9 @@
  * 结构对齐官方产物（黄金参考 /tmp/tmp.2s2eHN3Kax/build/*.js）：
  *   页面 bundle: (runtime)({0:interop, 1:newArrowCheck, entry, render, styleSheet, script, deps...})
  *   entry 模块 : new ViewModel(c)  c = script.default + styleSheet + render
- *   app bundle : (runtime)([,,entry(2), script(3), manifest(4)])  manifest 为 SDK 占位串
+ *   app bundle : (runtime)([?0,?1,entry(2), script(3), manifest(4)])  manifest 为 SDK 占位串
+ *                 app.js 被 babel 抽出 runtime helper 时 0/1 填 helper 模块（与页面同布局）；
+ *                 无 helper 引用时保持空洞 [,,entry,script,manifest]（对齐官方 golden 产物）
  *   babel 配置  : preset-env + transform-modules-commonjs + class-properties
  *                 + transform-runtime（helper 抽为模块 0/1）+ arrow-functions{spec:true}
  */
@@ -194,6 +196,12 @@ function bundleApp(scriptSource) {
   const scriptId = 3, manifestId = 4;
   let es5 = babelToEs5(scriptSource);
   es5 = rewriteRequires(es5, {});
+  // app.js 被 babel 抽出 runtime helper（import 产生 interopRequireDefault、
+  // 箭头函数产生 newArrowCheck）时，0/1 槽位必须放 helper 模块（与页面 bundle 同布局），
+  // 否则脚本 __webpack_require__(0/1) 命中数组空洞直接 TypeError；
+  // 未引用 helper 时保持空洞，对齐官方 golden 产物
+  if (/__webpack_require__\(0\)/.test(es5)) modules[0] = HELPER_INTEROP + REQUIRE_MODULE_TAIL;
+  if (/__webpack_require__\(1\)/.test(es5)) modules[1] = HELPER_ARROW + REQUIRE_MODULE_TAIL;
   es5 = es5.replace(/\s*$/, '') +
     ';\n(exports["default"] || module.exports).manifest = __webpack_require__(' + manifestId + ');';
   es5 = appendRequireModule(es5);
