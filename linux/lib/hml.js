@@ -261,6 +261,20 @@ function styleLiteral(compiler, key, value) {
 }
 
 // ---- for / if 编译（validateFor / validateIf 复刻） ----
+// 列表/条件表达式可能引用外层 for 变量（嵌套 for），此处只产出未解析 body
+// （this.x 形态），延迟到 transformNode 作用域入栈后再 resolveBody；
+// 顶层场景 resolveBody 结果与早解析一致，不影响既有字节基线
+function rawBody(compiler, raw) {
+  const c = expr.compileExpr(String(raw), false);
+  if (c.static) return JSON.stringify(c.text);
+  return c.body;
+}
+// 表达式 -> 字符串代码（e. 前缀）；只能在 transformNode 递归内（作用域已入栈）使用
+function expBody(compiler, raw) {
+  const c = expr.compileExpr(String(raw), false);
+  if (c.static) return JSON.stringify(c.text);
+  return compiler.resolveBody(c.body);
+}
 function compileFor(compiler, value) {
   let e = String(value);
   if (e.startsWith('{{') && e.endsWith('}}')) e = e.slice(2, -2);
@@ -274,21 +288,13 @@ function compileFor(compiler, value) {
     if (pair) { key = pair[1].trim(); item = pair[2].trim(); }
     if (item.startsWith('{{')) item = item.slice(2, -2).trim();
     if (key && key.startsWith('{{')) key = key.slice(2, -2).trim();
-    const exp = expBody(compiler, '{{' + right + '}}');
-    return { exp, key, item };
+    return { exp: rawBody(compiler, '{{' + right + '}}'), key, item };
   }
-  return { exp: expBody(compiler, '{{' + e + '}}'), key: null, item: '$item' };
-}
-// 表达式 -> 字符串代码（e. 前缀）
-function expBody(compiler, raw) {
-  const c = expr.compileExpr(String(raw), false);
-  if (c.static) return JSON.stringify(c.text);
-  return compiler.resolveBody(c.body);
+  return { exp: rawBody(compiler, '{{' + e + '}}'), key: null, item: '$item' };
 }
 function compileIf(compiler, value) {
-  const v = String(value);
-  if (hasBinding(v)) return expBody(compiler, v);
-  return expBody(compiler, '{{' + v + '}}');
+  if (hasBinding(value)) return rawBody(compiler, value);
+  return rawBody(compiler, '{{' + value + '}}');
 }
 
 // ---- 节点转换（transformTemplate 复刻） ----
@@ -296,18 +302,20 @@ function transformNode(compiler, node) {
   if (node.repeat && !node.forCompiled) {
     node.forCompiled = true;
     const f = node.repeat;
-    compiler.paramStack.push({ key: f.key, value: f.item });
+    // 默认 for 也隐式提供 $idx/$item（回调参数恒为 [item, idx]），
+    // 事件/表达式引用 $idx 时还原为参数名而非 e.$idx（对齐官方产物参数直传风格）
+    compiler.paramStack.push({ key: f.key || '$idx', value: f.item || '$item' });
     let child;
     try { child = transformNode(compiler, node); }
     finally { compiler.paramStack.pop(); }
     const params = [f.item || '$item', f.key || '$idx'];
-    const expFn = 'function(){return ' + f.exp + '}';
+    const expFn = 'function(){return ' + compiler.resolveBody(f.exp) + '}';
     return '_l((' + expFn + '),function(' + params.join(',') + '){return ' + child + '})';
   }
   if (node.shown !== undefined && !node.ifCompiled) {
     node.ifCompiled = true;
     const child = transformNode(compiler, node);
-    const shownFn = 'function(){return ' + node.shown + '}';
+    const shownFn = 'function(){return ' + compiler.resolveBody(node.shown) + '}';
     return '_i((' + shownFn + '),function(){return ' + child + '})';
   }
   return nodeCall(compiler, node);
